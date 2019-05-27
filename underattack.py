@@ -53,11 +53,25 @@ class UnderattackAPIConnector:
         ).json()
         return response
 
-    def get_daily_feeds_yesterday(self):
-        logger.debug(msg='Get yesterday\'s feeds')
+    def get_daily_feeds_yesterday(self, tags=None):
+        """
+        tags should be a list of strings
+        """
+        logger.debug('Get yesterday\'s feeds')
+        data = dumps({'tags': tags})
+        response = self.perform_request(
+            method=self.session.post,
+            url='{}/feeds/yesterday'.format(self.base_url),
+            data=data,
+            headers={'Content-type': 'application/json'}
+        ).json()
+        return response
+
+    def get_tags_list(self):
+        logger.debug('Get tags list')
         response = self.perform_request(
             method=self.session.get,
-            url='{}/feeds/yesterday'.format(self.base_url)
+            url='{}/tags/list'.format(self.base_url)
         ).json()
         return response
 
@@ -105,6 +119,10 @@ def _parse_arguments():
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('--lookup-ip', '-ip', help='get information about an IP')
     group.add_argument('--feeds-yesterday', '-fy', action='store_true', help='get yesterday\'s feeds')
+    group.add_argument('--tags-list', '-tl', action='store_true', help='get list of all available tags')
+
+    parser.add_argument('--tags', '-t', help='when calling -fy list here the tags to retrieve in csv format,'
+                                             ' gets ignored in other cases')
 
     return parser.parse_args()
 
@@ -122,7 +140,13 @@ def main():
         if arguments.lookup_ip:
             result = api_session.lookup_ip(arguments.lookup_ip)
         elif arguments.feeds_yesterday:
-            result = api_session.get_daily_feeds_yesterday()
+            tags = None
+            if arguments.tags:
+                tags = arguments.tags
+                tags = tags.split(',')
+            result = api_session.get_daily_feeds_yesterday(tags)
+        elif arguments.tags_list:
+            result = api_session.get_tags_list()
         else:
             logger.error('You should not get here')
 
